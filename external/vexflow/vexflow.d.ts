@@ -120,6 +120,12 @@ declare namespace Vex {
             public addTimeSignature(sig: string): void;
         }
 
+        export class TabStave extends Stave {
+            constructor(x: number, y: number, width: number, options: any);
+
+            public getYForGlyphs(): number;
+        }
+
         export class Modifier {
             public static Position: any;
 

@@ -4,7 +4,7 @@ import {SourceMeasure} from "../../VoiceData/SourceMeasure";
 import {Staff} from "../../VoiceData/Staff";
 import {StaffLine} from "../StaffLine";
 import {SystemLinesEnum} from "../SystemLinesEnum";
-import {ClefInstruction} from "../../VoiceData/Instructions/ClefInstruction";
+import {ClefEnum, ClefInstruction} from "../../VoiceData/Instructions/ClefInstruction";
 import {KeyInstruction} from "../../VoiceData/Instructions/KeyInstruction";
 import {RhythmInstruction} from "../../VoiceData/Instructions/RhythmInstruction";
 import {VexFlowConverter} from "./VexFlowConverter";
@@ -36,6 +36,8 @@ export class VexFlowMeasure extends StaffMeasure {
 
     // The VexFlow Stave (one measure in one line)
     private stave: Vex.Flow.Stave;
+    // The VexFlow TabStave (one measure in one line)
+    private tabStave: Vex.Flow.TabStave;
     // VexFlow StaveConnectors (vertical lines)
     private connectors: Vex.Flow.StaveConnector[] = [];
     // Intermediate object to construct beams
@@ -52,6 +54,11 @@ export class VexFlowMeasure extends StaffMeasure {
         this.stave.setX(x).setY(y);
     }
 
+    // Sets the absolute coordinates of the VFTabStave on the canvas
+    public setAbsoluteTabCoordinates(x: number, y: number): void {
+        this.tabStave.setX(x).setY(y);
+    }
+
     /**
      * Reset all the geometric values and parameters of this measure and put it in an initialized state.
      * This is needed to evaluate a measure a second time by system builder.
@@ -62,6 +69,10 @@ export class VexFlowMeasure extends StaffMeasure {
         //this.beginInstructionsWidth = 20 / UnitInPixels;
         //this.endInstructionsWidth = 20 / UnitInPixels;
         this.stave = new Vex.Flow.Stave(0, 0, 0, {
+            space_above_staff_ln: 0,
+            space_below_staff_ln: 0,
+        });
+        this.tabStave = new Vex.Flow.TabStave(0, 0, 0, {
             space_above_staff_ln: 0,
             space_below_staff_ln: 0,
         });
@@ -100,8 +111,10 @@ export class VexFlowMeasure extends StaffMeasure {
      */
     public addClefAtBegin(clef: ClefInstruction): void {
         this.octaveOffset = clef.OctaveOffset;
-        let vfclef: {type: string, annotation: string} = VexFlowConverter.Clef(clef);
+        let vfclef: { type: string, annotation: string } = VexFlowConverter.Clef(clef);
         this.stave.addClef(vfclef.type, undefined, vfclef.annotation, Vex.Flow.Modifier.Position.BEGIN);
+        let tabClef: { type: string, annotation: string } = VexFlowConverter.Clef(new ClefInstruction(ClefEnum.TAB));
+        this.tabStave.addClef(tabClef.type, undefined, tabClef.annotation, Vex.Flow.Modifier.Position.BEGIN);
         this.updateInstructionWidth();
     }
 
@@ -114,6 +127,11 @@ export class VexFlowMeasure extends StaffMeasure {
      */
     public addKeyAtBegin(currentKey: KeyInstruction, previousKey: KeyInstruction, currentClef: ClefInstruction): void {
         this.stave.setKeySignature(
+            VexFlowConverter.keySignature(currentKey),
+            VexFlowConverter.keySignature(previousKey),
+            undefined
+        );
+        this.tabStave.setKeySignature(
             VexFlowConverter.keySignature(currentKey),
             VexFlowConverter.keySignature(previousKey),
             undefined
@@ -132,6 +150,10 @@ export class VexFlowMeasure extends StaffMeasure {
             timeSig,
             Vex.Flow.Modifier.Position.BEGIN
         );
+        this.tabStave.addModifier(
+            timeSig,
+            Vex.Flow.Modifier.Position.BEGIN
+        );
         this.updateInstructionWidth();
     }
 
@@ -141,8 +163,10 @@ export class VexFlowMeasure extends StaffMeasure {
      * @param clef
      */
     public addClefAtEnd(clef: ClefInstruction): void {
-        let vfclef: {type: string, annotation: string} = VexFlowConverter.Clef(clef);
+        let vfclef: { type: string, annotation: string } = VexFlowConverter.Clef(clef);
         this.stave.setEndClef(vfclef.type, "small", vfclef.annotation);
+        let tabClef: { type: string, annotation: string } = VexFlowConverter.Clef(new ClefInstruction(ClefEnum.TAB));
+        this.tabStave.setEndClef(tabClef.type, "small", tabClef.annotation);
         this.updateInstructionWidth();
     }
 
@@ -156,7 +180,7 @@ export class VexFlowMeasure extends StaffMeasure {
         this.stave.setWidth(width * unitInPixels);
         // Force the width of the Begin Instructions
         //this.stave.setNoteStartX(this.beginInstructionsWidth * UnitInPixels);
-
+        this.tabStave.setWidth(width * unitInPixels);
     }
 
     /**
@@ -191,8 +215,10 @@ export class VexFlowMeasure extends StaffMeasure {
 
         // Force the width of the Begin Instructions
         this.stave.setNoteStartX(this.stave.getX() + unitInPixels * this.beginInstructionsWidth);
+        this.tabStave.setNoteStartX(this.tabStave.getX() + unitInPixels * this.beginInstructionsWidth);
         // Draw stave lines
         this.stave.setContext(ctx).draw();
+        this.tabStave.setContext(ctx).draw();
         // Draw all voices
         for (let voiceID in this.vfVoices) {
             if (this.vfVoices.hasOwnProperty(voiceID)) {
@@ -401,6 +427,14 @@ export class VexFlowMeasure extends StaffMeasure {
      */
     public getVFStave(): Vex.Flow.Stave {
         return this.stave;
+    }
+
+    /**
+     * Return the VexFlow TabStave corresponding to this StaffMeasure
+     * @returns {Vex.Flow.TabStave}
+     */
+    public getVFTabStave(): Vex.Flow.TabStave {
+        return this.tabStave;
     }
 
     //private increaseBeginInstructionWidth(): void {
