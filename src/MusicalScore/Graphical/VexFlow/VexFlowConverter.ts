@@ -160,6 +160,55 @@ export class VexFlowConverter {
         return vfnote;
     }
 
+    public static TabNote(notes: GraphicalNote[]): Vex.Flow.TabNote {
+        let frac: Fraction = notes[0].graphicalNoteLength;
+        let duration: string = VexFlowConverter.duration(frac);
+        let vfClefType: string = undefined;
+        let numDots: number = 0;
+        for (let note of notes) {
+            let res: [string, string, ClefInstruction] = (note as VexFlowGraphicalNote).vfpitch;
+            if (res === undefined) {
+                // keys = ["b/4"];
+                duration += "r";
+                break;
+            }
+            if (!vfClefType) {
+                let vfClef: {type: string, annotation: string} = VexFlowConverter.Clef(res[2]);
+                vfClefType = vfClef.type;
+            }
+            if (numDots < note.numberOfDots) {
+                numDots = note.numberOfDots;
+            }
+        }
+        for (let i: number = 0, len: number = numDots; i < len; ++i) {
+            duration += "d";
+        }
+
+        let vfTabNote: Vex.Flow.TabNote = new Vex.Flow.TabNote({
+            auto_stem: true,
+            clef: vfClefType,
+            duration: duration,
+            duration_override: {
+                denominator: frac.Denominator,
+                numerator: frac.Numerator,
+            },
+            positions: notes.map(note => {
+                return {
+                    fret: note.sourceNote.Technical ? note.sourceNote.Technical.fret : "",
+                    str: note.sourceNote.Technical ? note.sourceNote.Technical.string : ""
+                };
+            })
+        });
+
+        for (let i: number = 0, len: number = notes.length; i < len; i += 1) {
+            (notes[i] as VexFlowGraphicalNote).setIndex(vfTabNote, i);
+        }
+        for (let i: number = 0, len: number = numDots; i < len; ++i) {
+            vfTabNote.addDot();
+        }
+        return vfTabNote;
+    }
+
     /**
      * Convert a ClefInstruction to a string representing a clef type in VexFlow
      * @param clef

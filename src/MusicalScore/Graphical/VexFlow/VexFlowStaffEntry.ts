@@ -13,6 +13,7 @@ export class VexFlowStaffEntry extends GraphicalStaffEntry {
     public graphicalNotes: { [voiceID: number]: GraphicalNote[]; } = {};
     // The corresponding VexFlow.StaveNotes
     public vfNotes: { [voiceID: number]: Vex.Flow.StaveNote; } = {};
+    public vfTabNotes: { [voiceID: number]: Vex.Flow.TabNote; } = {};
 
     /**
      *
@@ -25,6 +26,22 @@ export class VexFlowStaffEntry extends GraphicalStaffEntry {
         for (let voiceId in vfNotes) {
             if (vfNotes.hasOwnProperty(voiceId)) {
                 x += (vfNotes[voiceId].getNoteHeadBeginX() + vfNotes[voiceId].getNoteHeadEndX()) / 2;
+                n += 1;
+            }
+        }
+        if (n === 0) {
+            return 0;
+        }
+        return x / n / unitInPixels;
+    }
+
+    public getTabX(): number {
+        let x: number = 0;
+        let n: number = 0;
+        let vfTabNotes: { [voiceID: number]: Vex.Flow.TabNote; } = this.vfTabNotes;
+        for (let voiceId in vfTabNotes) {
+            if (vfTabNotes.hasOwnProperty(voiceId)) {
+                x += (vfTabNotes[voiceId].getTieLeftX() + vfTabNotes[voiceId].getTieRightX()) / 2;
                 n += 1;
             }
         }

@@ -44,6 +44,7 @@ export class Note {
     private slurs: Slur[] = [];
     private graceNoteSlash: boolean = false;
     private playbackInstrumentId: string = undefined;
+    private technical: { string: number; fret: number } = undefined;
 
     public get GraceNoteSlash(): boolean {
         return this.graceNoteSlash;
@@ -101,6 +102,14 @@ export class Note {
     }
     public set PlaybackInstrumentId(value: string) {
         this.playbackInstrumentId = value;
+    }
+
+    public get Technical(): { string: number; fret: number } {
+        return this.technical;
+    }
+
+    public set Technical(value: { string: number; fret: number }) {
+        this.technical = value;
     }
 
     public calculateNoteLengthWithoutTie(): Fraction {

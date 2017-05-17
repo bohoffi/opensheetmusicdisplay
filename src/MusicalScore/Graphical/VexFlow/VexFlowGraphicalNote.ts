@@ -26,6 +26,7 @@ export class VexFlowGraphicalNote extends GraphicalNote {
     public vfpitch: [string, string, ClefInstruction];
     // The corresponding VexFlow StaveNote (plus its index in the chord)
     public vfnote: [Vex.Flow.StaveNote, number];
+    public vfTabNote: [Vex.Flow.TabNote, number];
     // The current clef
     private clef: ClefInstruction;
 
@@ -51,7 +52,11 @@ export class VexFlowGraphicalNote extends GraphicalNote {
      * @param note
      * @param index
      */
-    public setIndex(note: Vex.Flow.StaveNote, index: number): void {
-        this.vfnote = [note, index];
+    public setIndex(note: Vex.Flow.StaveNote | Vex.Flow.TabNote, index: number): void {
+        if (note instanceof Vex.Flow.StaveNote) {
+            this.vfnote = [note, index];
+        } else {
+            this.vfTabNote = [note, index];
+        }
     }
 }

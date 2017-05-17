@@ -68,6 +68,10 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
             measure.PositionAndShape.AbsolutePosition.x * unitInPixels,
             measure.PositionAndShape.AbsolutePosition.y * unitInPixels
         );
+        measure.setAbsoluteTabCoordinates(
+            measure.PositionAndShape.AbsolutePosition.x * unitInPixels,
+            (measure.PositionAndShape.AbsolutePosition.y * unitInPixels) + 110
+        );
         return measure.draw(this.vfctx);
     }
 

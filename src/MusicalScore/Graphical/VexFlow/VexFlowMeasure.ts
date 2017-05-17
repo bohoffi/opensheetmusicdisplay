@@ -14,6 +14,7 @@ import {GraphicalNote} from "../GraphicalNote";
 import {GraphicalStaffEntry} from "../GraphicalStaffEntry";
 import StaveConnector = Vex.Flow.StaveConnector;
 import StaveNote = Vex.Flow.StaveNote;
+import TabNote = Vex.Flow.TabNote;
 import {Logging} from "../../../Common/Logging";
 import {unitInPixels} from "./VexFlowMusicSheetDrawer";
 import {Tuplet} from "../../VoiceData/Tuplet";
@@ -29,6 +30,7 @@ export class VexFlowMeasure extends StaffMeasure {
     public octaveOffset: number = 3;
     // The VexFlow Voices in the measure
     public vfVoices: { [voiceID: number]: Vex.Flow.Voice; } = {};
+    public vfTabVoices: { [voiceID: number]: Vex.Flow.Voice; } = {};
     // Call this function (if present) to x-format all the voices in the measure
     public formatVoices: (width: number) => void;
     // The VexFlow Ties in the measure
@@ -150,8 +152,9 @@ export class VexFlowMeasure extends StaffMeasure {
             timeSig,
             Vex.Flow.Modifier.Position.BEGIN
         );
+        let tabTimeSig: Vex.Flow.TimeSignature = VexFlowConverter.TimeSignature(rhythm);
         this.tabStave.addModifier(
-            timeSig,
+            tabTimeSig,
             Vex.Flow.Modifier.Position.BEGIN
         );
         this.updateInstructionWidth();
@@ -218,13 +221,14 @@ export class VexFlowMeasure extends StaffMeasure {
         this.tabStave.setNoteStartX(this.tabStave.getX() + unitInPixels * this.beginInstructionsWidth);
         // Draw stave lines
         this.stave.setContext(ctx).draw();
-        this.tabStave.setContext(ctx).draw();
+
         // Draw all voices
         for (let voiceID in this.vfVoices) {
             if (this.vfVoices.hasOwnProperty(voiceID)) {
                 this.vfVoices[voiceID].draw(ctx, this.stave);
             }
         }
+
         // Draw beams
         for (let voiceID in this.vfbeams) {
             if (this.vfbeams.hasOwnProperty(voiceID)) {
@@ -251,6 +255,36 @@ export class VexFlowMeasure extends StaffMeasure {
         // Draw vertical lines
         for (let connector of this.connectors) {
             connector.setContext(ctx).draw();
+        }
+
+        // Draw tablature if available (at least 1 TabNote)
+        let drawableTabNotesCount: number = Object.keys(this.vfTabVoices)
+            .reduce(
+                (count: number, voiceID: string) => {
+                    let voice: Vex.Flow.Voice = this.vfTabVoices[voiceID];
+                    let tickables: any[] = voice.getTickables();
+                    return count + tickables
+                            .filter(note => (note as TabNote)
+                                .positions
+                                .filter(p => !!p.str && !! p.fret).length
+                            ).length;
+                    },
+                0);
+
+        if (drawableTabNotesCount !== 0) {
+            // Draw TAB stave lines
+            this.tabStave.setContext(ctx).draw();
+            // Draw connector between Stave and TabStave (for the first measures only)
+            if (this.MeasureNumber === 1) {
+                new StaveConnector(this.stave, this.tabStave).setContext(ctx).draw();
+            }
+
+            // Draw all TAB voices
+            for (let voiceID in this.vfTabVoices) {
+                if (this.vfTabVoices.hasOwnProperty(voiceID)) {
+                    this.vfTabVoices[voiceID].draw(ctx, this.tabStave);
+                }
+            }
         }
 
         // now we can finally set the vexflow x positions back into the osmd object model:
@@ -382,6 +416,8 @@ export class VexFlowMeasure extends StaffMeasure {
                 if (gnotes.hasOwnProperty(voiceID)) {
                     let vfnote: StaveNote = VexFlowConverter.StaveNote(gnotes[voiceID]);
                     (graphicalStaffEntry as VexFlowStaffEntry).vfNotes[voiceID] = vfnote;
+                    let vfTabNote: TabNote = VexFlowConverter.TabNote(gnotes[voiceID]);
+                    (graphicalStaffEntry as VexFlowStaffEntry).vfTabNotes[voiceID] = vfTabNote;
                 }
             }
         }
@@ -394,6 +430,7 @@ export class VexFlowMeasure extends StaffMeasure {
             let gnotes: { [voiceID: number]: GraphicalNote[]; } = graphicalStaffEntry.graphicalNotes;
             // create vex flow voices and add tickables to it:
             let vfVoices: { [voiceID: number]: Vex.Flow.Voice; } = this.vfVoices;
+            let vfTabVoices: { [voiceID: number]: Vex.Flow.Voice; } = this.vfTabVoices;
             for (let voiceID in gnotes) {
                 if (gnotes.hasOwnProperty(voiceID)) {
                     if (!(voiceID in vfVoices)) {
@@ -403,8 +440,20 @@ export class VexFlowMeasure extends StaffMeasure {
                             resolution: Vex.Flow.RESOLUTION,
                         }).setMode(Vex.Flow.Voice.Mode.SOFT);
                     }
+                    if ((graphicalStaffEntry as VexFlowStaffEntry).vfTabNotes[voiceID] !== undefined) {
+                        if (!(voiceID in vfTabVoices)) {
+                            vfTabVoices[voiceID] = new Vex.Flow.Voice({
+                                beat_value: this.parentSourceMeasure.Duration.Denominator,
+                                num_beats: this.parentSourceMeasure.Duration.Numerator,
+                                resolution: Vex.Flow.RESOLUTION,
+                            }).setMode(Vex.Flow.Voice.Mode.SOFT);
+                        }
+                    }
 
                     vfVoices[voiceID].addTickable(graphicalStaffEntry.vfNotes[voiceID]);
+                    if (vfTabVoices[voiceID] !== undefined && graphicalStaffEntry.vfTabNotes[voiceID] !== undefined) {
+                        vfTabVoices[voiceID].addTickable(graphicalStaffEntry.vfTabNotes[voiceID]);
+                    }
                 }
             }
         }

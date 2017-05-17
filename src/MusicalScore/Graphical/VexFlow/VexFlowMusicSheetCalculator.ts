@@ -70,13 +70,16 @@ export class VexFlowMusicSheetCalculator extends MusicSheetCalculator {
         }*/
         // Format the voices
         let allVoices: Vex.Flow.Voice[] = [];
+        let allTabVoices: Vex.Flow.Voice[] = [];
         let formatter: Vex.Flow.Formatter = new Vex.Flow.Formatter({
             align_rests: true,
         });
 
         for (let measure of measures) {
             let mvoices:  { [voiceID: number]: Vex.Flow.Voice; } = (measure as VexFlowMeasure).vfVoices;
+            let mTabVoices: { [voiceID: number]: Vex.Flow.Voice; } = (measure as VexFlowMeasure).vfTabVoices;
             let voices: Vex.Flow.Voice[] = [];
+            let tabVoices: Vex.Flow.Voice[] = [];
             for (let voiceID in mvoices) {
                 if (mvoices.hasOwnProperty(voiceID)) {
                     voices.push(mvoices[voiceID]);
@@ -84,11 +87,22 @@ export class VexFlowMusicSheetCalculator extends MusicSheetCalculator {
 
                 }
             }
+            for (let voiceID in mTabVoices) {
+                if (mTabVoices.hasOwnProperty(voiceID)) {
+                    tabVoices.push(mTabVoices[voiceID]);
+                    allTabVoices.push(mTabVoices[voiceID]);
+                }
+            }
             if (voices.length === 0) {
                 Logging.warn("Found a measure with no voices... Continuing anyway.", mvoices);
                 continue;
             }
+            if (tabVoices.length === 0) {
+                Logging.warn("Found a measure with no voices... Continuing anyway.", mvoices);
+                continue;
+            }
             formatter.joinVoices(voices);
+            formatter.joinVoices(tabVoices);
         }
 
         let width: number = 200;
@@ -103,6 +117,9 @@ export class VexFlowMusicSheetCalculator extends MusicSheetCalculator {
             }
             firstMeasure.formatVoices = (w: number) => {
                 formatter.format(allVoices, w);
+                if (allTabVoices.length > 0) {
+                    formatter.format(allTabVoices, w);
+                }
             };
         }
 

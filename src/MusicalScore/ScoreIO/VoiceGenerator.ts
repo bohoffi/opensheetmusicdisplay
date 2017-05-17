@@ -140,6 +140,11 @@ export class VoiceGenerator {
                 if (notationNode.element("arpeggiate") !== undefined && !graceNote) {
                     this.currentVoiceEntry.ArpeggiosNotesIndices.push(this.currentVoiceEntry.Notes.indexOf(this.currentNote));
                 }
+                let technicalNode: IXmlElement = notationNode.element("technical");
+                if (technicalNode !== undefined) {
+                    // add technical (string, fret)
+                    this.addTechnical(technicalNode);
+                }
                 let tiedNodeList: IXmlElement[] = notationNode.elements("tied");
                 if (tiedNodeList) {
                     this.addTie(tiedNodeList, measureStartAbsoluteTimestamp, maxTieNoteFraction);
@@ -910,6 +915,16 @@ export class VoiceGenerator {
         }
     }
 
+    private addTechnical(technicalNode: IXmlElement): void {
+        let stringElement: IXmlElement = technicalNode.element("string");
+        let fretElement: IXmlElement = technicalNode.element("fret");
+        if (stringElement !== undefined && fretElement !== undefined) {
+            this.currentNote.Technical = {
+                fret: parseFloat(fretElement.value),
+                string: parseFloat(stringElement.value)
+            };
+        }
+    }
     /**
      * Find the next free int (starting from 0) to use as key in TieDict.
      * @returns {number}

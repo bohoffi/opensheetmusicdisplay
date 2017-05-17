@@ -38,9 +38,11 @@ declare namespace Vex {
 
             public setStave(stave: Stave): Voice;
 
-            public addTickables(notes: StaveNote[]): Voice;
+            public addTickables(notes: StaveNote[] | TabNote[]): Voice;
 
-            public addTickable(note: StaveNote): Voice;
+            public addTickable(note: StaveNote | TabNote): Voice;
+
+            public getTickables(): StaveNote[] | TabNote[];
 
             public setMode(mode: any): Voice;
 
@@ -63,6 +65,18 @@ declare namespace Vex {
             public setStyle(style: any): void;
 
             public addDotToAll(): void;
+        }
+
+        export class TabNote {
+            constructor(tab_struct: any, draw_stem?: boolean);
+
+            public positions: {fret: string, str: string }[];
+
+            public getTieLeftX(): number;
+
+            public getTieRightX(): number;
+
+            public addDot(): void;
         }
 
         export class StaveTie {

@@ -66,6 +66,7 @@ export class ClefInstruction extends AbstractNotationInstruction {
             case ClefEnum.F:
             case ClefEnum.C:
             case ClefEnum.percussion:
+            case ClefEnum.TAB:
                 return true;
             default:
                 return false;
@@ -145,6 +146,7 @@ export class ClefInstruction extends AbstractNotationInstruction {
                 this.referenceCyPosition = (5 - this.line);
                 break;
             case ClefEnum.percussion:
+            case ClefEnum.TAB:
                 this.clefPitch = new Pitch(NoteEnum.C, 2, AccidentalEnum.NONE);
                 this.referenceCyPosition = 2;
                 break;
